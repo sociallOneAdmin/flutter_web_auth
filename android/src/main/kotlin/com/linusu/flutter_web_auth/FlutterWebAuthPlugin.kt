@@ -41,8 +41,11 @@ class FlutterWebAuthPlugin(private var context: Context? = null, private var cha
       channel = null
   }
 
+
   override fun onMethodCall(call: MethodCall, resultCallback: Result) {
-    when (call.method) {
+      var currentUri: String? = null
+
+      when (call.method) {
         "authenticate" -> {
           val url = Uri.parse(call.argument("url"))
           val callbackUrlScheme = call.argument<String>("callbackUrlScheme")!!
@@ -50,7 +53,10 @@ class FlutterWebAuthPlugin(private var context: Context? = null, private var cha
 
           callbacks[callbackUrlScheme] = resultCallback
 
-          val intent = CustomTabsIntent.Builder().build()
+            val tabsIntent = CustomTabsIntent.Builder()
+            tabsIntent.setShareState(CustomTabsIntent.SHARE_STATE_OFF)
+
+          val intent = tabsIntent.build()
           val keepAliveIntent = Intent(context, KeepAliveService::class.java)
 
           intent.intent.addFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP or Intent.FLAG_ACTIVITY_NEW_TASK)
@@ -60,13 +66,15 @@ class FlutterWebAuthPlugin(private var context: Context? = null, private var cha
           intent.intent.putExtra("android.support.customtabs.extra.KEEP_ALIVE", keepAliveIntent)
 
           intent.launchUrl(context!!, url)
+
+          currentUri = intent.intent.dataString
         }
         "cleanUpDanglingCalls" -> {
           callbacks.forEach{ (_, danglingResultCallback) ->
-              danglingResultCallback.error("CANCELED", "User canceled login", null)
+              danglingResultCallback.error("CANCELED", "User canceled login", currentUri)
           }
           callbacks.clear()
-          resultCallback.success(null)
+          resultCallback.success(currentUri)
         }
         else -> resultCallback.notImplemented()
     }
