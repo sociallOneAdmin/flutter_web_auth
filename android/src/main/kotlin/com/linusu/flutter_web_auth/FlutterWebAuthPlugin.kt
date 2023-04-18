@@ -43,8 +43,6 @@ class FlutterWebAuthPlugin(private var context: Context? = null, private var cha
 
 
   override fun onMethodCall(call: MethodCall, resultCallback: Result) {
-      var currentUri: String? = null
-
       when (call.method) {
         "authenticate" -> {
           val url = Uri.parse(call.argument("url"))
@@ -66,15 +64,13 @@ class FlutterWebAuthPlugin(private var context: Context? = null, private var cha
           intent.intent.putExtra("android.support.customtabs.extra.KEEP_ALIVE", keepAliveIntent)
 
           intent.launchUrl(context!!, url)
-
-          currentUri = intent.intent.dataString
         }
         "cleanUpDanglingCalls" -> {
           callbacks.forEach{ (_, danglingResultCallback) ->
-              danglingResultCallback.error("CANCELED", "User canceled login", currentUri)
+              danglingResultCallback.error("CANCELED", "User canceled login", null)
           }
           callbacks.clear()
-          resultCallback.success(currentUri)
+          resultCallback.success(null)
         }
         else -> resultCallback.notImplemented()
     }
